@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.naive_bayes import MultinomialNB
 
 stored_folder = Path(os.path.abspath('')).parent.parent / "data" / "processed" / "cleaned_df.pkl"
 input_file = open(stored_folder, "rb")
@@ -18,9 +18,9 @@ if __name__ == "__main__":
     y = cleaned_data['sentiment']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True, random_state=42)
 
-    gbc = GradientBoostingClassifier()
-    gbc.fit(X_train, y_train)
-    preds = gbc.predict(X_test)
+    nb = MultinomialNB()
+    nb.fit(X_train, y_train)
+    preds = nb.predict(X_test)
     print(f'Accuracy:  {accuracy_score(y_test, preds)}')
 
     cm = confusion_matrix(y_test, preds)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # Plotting the confusion matrix
     fig, ax = plt.subplots()
     cax = ax.matshow(cm)
-    plt.title('McDonald`s Sentiment Confusion Matrix(Gradient Boosting)')
+    plt.title('McDonald`s Sentiment Confusion Matrix(Naive Bayes)')
     fig.colorbar(cax)
     ax.set_xticks(np.arange(len(labels)))
     ax.set_yticks(np.arange(len(labels)))
@@ -48,4 +48,4 @@ if __name__ == "__main__":
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.show()
-    # Accuracy 0.67
+    # Accuracy 0.69
