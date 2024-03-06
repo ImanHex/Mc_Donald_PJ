@@ -26,42 +26,12 @@ unique_coordinates = df[['latitude', 'longitude', 'store_address']].drop_duplica
 
 average_rating_by_store = {address: (df[df['store_address'] == address])['rating'].mean().round(2) for address in
                            df['store_address'].unique()}
-print(average_rating_by_store)
 
 average_rating_by_latitude = df.groupby('latitude')['rating'].mean().round(2)
 
 coordinates = [(latitude, longitude) for latitude, longitude in zip(df.latitude, df.longitude)]
 
 latitudes, longitudes = np.array(coordinates).T
-print(latitudes)
-print(longitudes)
-
-
-
-# latitudes, longitudes = np.array(coordinates).T
-# Define color scale for ratings
-# def color_fn(rating):
-#     if rating < 2.5:
-#         return 'red'  # Low rating
-#     elif rating < 4:
-#         return 'yellow'  # Medium rating
-#     else:
-#         return 'green'  # High rating
-#
-# markers = [
-#     dl.Marker(
-#         position=[row['latitude'], row['longitude']],
-#         children=[
-#             dl.Tooltip(content="{row['store_address']} (Rating: {row['rating']:.2f})")
-#         ],
-#         style={
-#             'color': 'black',
-#             'backgroundColor': color_fn(row['rating']),
-#             'radius': 10,
-#             'fillOpacity': 0.7
-#         }
-#     ) for _, row in average_ratings.iterrows()
-# ]
 
 
 def cluster_to_wordcloud(cluster_group, max_words=10):
@@ -100,59 +70,93 @@ def generate_wordcloud_image(cluster_num, index):
     return f"data:image/png;base64,{img_str}"
 
 
-# Define Dash layout
-app.layout = html.Div([
-    html.H1("McDonald's Reviews Word Cloud", style={'textAlign': 'center',  'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px', 'borderRadius': '5px'}),
+# Define Dash layout for the word cloud page
+wordcloud_layout = html.Div([
+    html.H1("McDonald's Reviews Word Cloud",
+            style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
+                   'borderRadius': '5px'}),
     html.Div(id="wordcloud-container", children=[
 
-    html.Div([
         html.Div([
-            html.Label("Select Cluster Number:", style={'marginBottom': '10px', 'width': '100%'}),
-            dcc.Dropdown(
-                id='cluster-dropdown',
-                options=[{'label': f'Cluster {i + 1}', 'value': i} for i in range(len(model[0]))],
-                # Create dropdown options dynamically based on number of clusters
-                value=0,  # Set default value to the first cluster
-                clearable=False,  # Disable clearing the selection
-                style={'width': '100%'}
-            ),
-            html.Div(id='cluster-label', style={'marginTop': '10px', 'width': '100%'}),
-        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'flex-end', 'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
+            html.Div([
+                html.Label("Select Cluster Number:", style={'marginBottom': '10px', 'width': '100%'}),
+                dcc.Dropdown(
+                    id='cluster-dropdown',
+                    options=[{'label': f'Cluster {i + 1}', 'value': i} for i in range(len(model[0]))],
+                    # Create dropdown options dynamically based on number of clusters
+                    value=0,  # Set default value to the first cluster
+                    clearable=False,  # Disable clearing the selection
+                    style={'width': '100%'}
+                ),
+                html.Div(id='cluster-label', style={'marginTop': '10px', 'width': '100%'}),
+            ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'flex-end', 'width': '300px',
+                      'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
 
-        html.Div([
-            html.Label("Select Index:", style={'marginBottom': '10px', 'width': '100%'}),
-            dcc.Dropdown(
-                id='index-dropdown',
-                options=[{'label': f'Rating {i + 1}', 'value': i} for i in range(len(model))],
-                # Create dropdown options dynamically based on number of indexes
-                value=0,  # Set default value to the first index
-                clearable=False,  # Disable clearing the selection
-                style={'width': '100%'}
-            ),
-            html.Div(id='index-label', style={'marginTop': '10px', 'width': '100%'}),
-        ], style={'display': 'flex', 'flexDirection': 'column', 'marginTop': '50px', 'alignItems': 'flex-end', 'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
+            html.Div([
+                html.Label("Select Index:", style={'marginBottom': '10px', 'width': '100%'}),
+                dcc.Dropdown(
+                    id='index-dropdown',
+                    options=[{'label': f'Rating {i + 1}', 'value': i} for i in range(len(model))],
+                    # Create dropdown options dynamically based on number of indexes
+                    value=0,  # Set default value to the first index
+                    clearable=False,  # Disable clearing the selection
+                    style={'width': '100%'}
+                ),
+                html.Div(id='index-label', style={'marginTop': '10px', 'width': '100%'}),
+            ], style={'display': 'flex', 'flexDirection': 'column', 'marginTop': '50px', 'alignItems': 'flex-end',
+                      'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
         ], style={'backgroundColor': 'white', 'padding': '135px', 'alignItems': 'center'}),
 
         # Initial word cloud image with cluster 0 and index 0
-        html.Img(id="wordcloud-img", src=generate_wordcloud_image(0, 0), style={'backgroundColor': '#E3F6FB', 'borderRadius': '10px', 'marginRight': '5px', 'width': '50%', 'height': '50%'}),
+        html.Img(id="wordcloud-img", src=generate_wordcloud_image(0, 0),
+                 style={'backgroundColor': '#E3F6FB', 'borderRadius': '10px', 'marginRight': '5px', 'width': '50%',
+                        'height': '50%'}),
 
-], style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'gap': '50px', 'borderRadius': '5px'}),
+    ], style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'gap': '50px',
+              'borderRadius': '5px', 'backgroundColor': 'white'})
+])
+
+# Define Dash layout for the map page
+map_layout = html.Div([
+    html.H1("Branches Average Score Map",
+            style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'color': '#0181AD',
+                   'paddingTop': '10px'}),
+    dl.Map([
+        dl.TileLayer(),
+        *[dl.Marker(position=[latitude, longitude], children=[
+            dl.Tooltip(html.Div([
+                html.P(f"Store Address: {store_address}"),
+                html.P(f"Average Rating: {average_rating_by_latitude[latitude]}")
+            ]))
+        ]) for latitude, longitude, store_address in
+          zip(unique_coordinates['latitude'], unique_coordinates['longitude'], unique_coordinates['store_address'])]
+    ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4,
+        style={'height': '800px', 'width': '800px', 'margin': 'auto', 'borderRadius': '10px'})
+], style={'backgroundColor': 'white', 'width': '41%', 'margin': 'auto', 'borderRadius': '5px'})
+
+# Define the main layout with navigation links
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
     html.Div([
-        html.H1("Leaflet Map", style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'color': '#0181AD', 'paddingTop': '10px'}),
-        dl.Map([
-            dl.TileLayer(),
-            *[dl.Marker(position=[latitude, longitude], children=[
-                dl.Tooltip(html.Div([
-                    html.P(f"Store Address: {store_address}"),
-                    html.P(f"Average Rating: {average_rating_by_latitude[latitude]}")
-                ]))
-            ]) for latitude, longitude, store_address in
-              zip(unique_coordinates['latitude'], unique_coordinates['longitude'], unique_coordinates['store_address'])]
-        ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4,
-           style={'height': '500px', 'width': '500px', 'marginLeft': '40px',  'borderRadius': '10px'})
-    ], style={'backgroundColor': 'white', 'width': '41%', 'marginLeft': '40px', 'borderRadius': '5px'})
+        html.Div([
+            dcc.Link('Word Cloud', href='/', style={'marginRight': '10px'}),
+            dcc.Link('Map', href='/map', style={'marginRight': '10px'})
+        ], style={'padding': '10px'})
+    ], style={'backgroundColor': '#F4F7F7', 'width': '100%'}),
+    html.Div(id='page-content')
+])
 
-], style={'backgroundColor': '#F4F7F7', 'width': '100%', 'height': '100%', 'fontFamily': 'Arial, sans-serif'})
+
+# Define callback to render different pages based on navigation links
+@app.callback(Output('page-content', 'children'),
+              [Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname == '/':
+        return wordcloud_layout
+    elif pathname == '/map':
+        return map_layout
+    else:
+        return wordcloud_layout  # Default to word cloud page if URL is invalid
 
 
 # Define callback to update word cloud image based on selected cluster number and index
