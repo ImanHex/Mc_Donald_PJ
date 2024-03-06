@@ -2,55 +2,67 @@ import pickle
 from pathlib import Path
 import os
 import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import accuracy_score, confusion_matrix
-import matplotlib.pyplot as plt
-from sklearn.svm import SVC
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import normalize
+from wordcloud import WordCloud
 
 stored_folder = Path(os.path.abspath('')).parent.parent / "data" / "processed" / "cleaned_df.pkl"
 input_file = open(stored_folder, "rb")
 cleaned_data = pickle.load(input_file)
 
+
+def compute_cluster_groups(shrunk_norm_matrix, review=cleaned_data['processed_review']):
+    cluster_model = KMeans(n_clusters=10, n_init=10, random_state=42)
+    clusters = cluster_model.fit_predict(shrunk_norm_matrix)
+    df = pd.DataFrame({'Index': range(clusters.size), 'Cluster': clusters, 'Review': review})
+    return [df_cluster for _, df_cluster in df.groupby('Cluster')]
+
+
+def compute_cluster_models(tfidf_list):
+    cluster_models = []
+    for tfidf_matrix in tfidf_list:
+        if tfidf_matrix.ndim > 2:
+            tfidf_matrix = tfidf_matrix.squeeze()
+        normalized_matrix = normalize(tfidf_matrix)
+        cluster_model = KMeans(n_clusters=10, n_init=10, random_state=42)
+        cluster_model.fit(normalized_matrix)
+        cluster_models.append(cluster_model)
+    return cluster_models
+
+
 if __name__ == "__main__":
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(cleaned_data['processed_review'])
-    y = cleaned_data['sentiment']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True, random_state=42)
 
-    svc = SVC()
-    svc.fit(X_train, y_train)
-    preds = svc.predict(X_test)
-    print(f'Accuracy:  {accuracy_score(y_test, preds)}')
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_list = []
+    tfidf_vocab = {}
 
-    cm = confusion_matrix(y_test, preds)
-    print('Confusion Matrix:')
-    print(cm)
+    for rating in sorted(cleaned_data['rating'].unique()):
+        tfidf_list.append(tfidf_vectorizer.fit_transform(cleaned_data[cleaned_data['rating'] == rating].processed_review))
+        tfidf_vocab[rating] = tfidf_vectorizer.get_feature_names_out()
 
-    labels = ['Positive', 'Negative', 'Neutral']
-    cm = confusion_matrix(y_test, preds, labels=labels)
 
-    # Plotting the confusion matrix
-    fig, ax = plt.subplots()
-    cax = ax.matshow(cm)
-    plt.title('McDonald`s Sentiment Confusion Matrix(SVC)')
-    fig.colorbar(cax)
-    ax.set_xticks(np.arange(len(labels)))
-    ax.set_yticks(np.arange(len(labels)))
-    ax.set_xticklabels(labels)
-    ax.set_yticklabels(labels)
+    df_rank = pd.DataFrame(
+        {'Words': tfidf_vocab.get(2), 'Summed TFIDF': tfidf_list[1].toarray().sum(axis=0)}).sort_values('Summed TFIDF',
+                                                                                                        ascending=False)
 
-    # Add text annotations
-    for i in range(len(labels)):
-        for j in range(len(labels)):
-            plt.text(j, i, str(cm[i, j]), ha='center', va='center', color='red')
+    shrunk_norm_matrix_list = []
+    cluster_models = []
+    for tfidf in tfidf_list:
+        shrunk_norm_matrix_list.append(normalize(TruncatedSVD(n_components=100, random_state=42).fit_transform(tfidf)))
 
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.show()
-    # Accuracy 0.70
+    cluster_models = compute_cluster_models(tfidf_list)
+
+    cluster_groups = []
+
+    for index, rating in enumerate(sorted(cleaned_data.rating.unique())):
+        cluster_groups.append(
+            compute_cluster_groups(shrunk_norm_matrix_list[index], review=cleaned_data[cleaned_data.rating == rating].processed_review))
 
     output_dir = Path(os.path.abspath('')).parent.parent / "data" / "modeling"
-    output_file = open(str(output_dir) + "/svc_model.pkl", "wb")
-    pickle.dump(svc, output_file)
-    output_file.close()
+    with open(str(output_dir) + '/cluster_models.pkl', 'wb') as f:
+        pickle.dump(cluster_groups, f)
