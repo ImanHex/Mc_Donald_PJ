@@ -36,6 +36,7 @@ print(latitudes)
 print(longitudes)
 
 
+
 # latitudes, longitudes = np.array(coordinates).T
 # Define color scale for ratings
 # def color_fn(rating):
