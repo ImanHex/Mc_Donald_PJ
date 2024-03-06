@@ -38,27 +38,18 @@ def cluster_to_wordcloud(cluster_group, max_words=10):
     vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = vectorizer.fit_transform(cluster_group)
     vocab_list = vectorizer.get_feature_names_out()
-
-    # create a rank list of words
     df_ranked = pd.DataFrame({'Word': vocab_list, 'Sum TFIDF': tfidf_matrix.toarray().sum(axis=0)}).sort_values(
         'Sum TFIDF', ascending=False)
-
-    # create word score
     word_to_score = {word: score for word, score in df_ranked[:max_words].values}
-
-    # initialize wordcloud object
     wordcloud_generator = WordCloud(background_color='white')
-
-    # fit wordcloud_generator to word_to_score
     wordcloud_image = wordcloud_generator.fit_words(word_to_score)
-
     return wordcloud_image
 
 
 def generate_wordcloud_image(cluster_num, index):
     cluster_group = model[index][
-        cluster_num].Review  # Get cluster group data for the specified cluster number and index
-    wordcloud_image = cluster_to_wordcloud(cluster_group)  # Generate word cloud image as dictionary of word frequencies
+        cluster_num].Review
+    wordcloud_image = cluster_to_wordcloud(cluster_group)
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.imshow(wordcloud_image, interpolation='bilinear')
     ax.axis("off")  # Hide axis
@@ -70,7 +61,6 @@ def generate_wordcloud_image(cluster_num, index):
     return f"data:image/png;base64,{img_str}"
 
 
-# Define Dash layout for the word cloud page
 wordcloud_layout = html.Div([
     html.H1("McDonald's Reviews Word Cloud",
             style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
@@ -83,9 +73,8 @@ wordcloud_layout = html.Div([
                 dcc.Dropdown(
                     id='cluster-dropdown',
                     options=[{'label': f'Cluster {i + 1}', 'value': i} for i in range(len(model[0]))],
-                    # Create dropdown options dynamically based on number of clusters
-                    value=0,  # Set default value to the first cluster
-                    clearable=False,  # Disable clearing the selection
+                    value=0,
+                    clearable=False,
                     style={'width': '100%'}
                 ),
                 html.Div(id='cluster-label', style={'marginTop': '10px', 'width': '100%'}),
@@ -97,9 +86,8 @@ wordcloud_layout = html.Div([
                 dcc.Dropdown(
                     id='index-dropdown',
                     options=[{'label': f'Rating {i + 1}', 'value': i} for i in range(len(model))],
-                    # Create dropdown options dynamically based on number of indexes
-                    value=0,  # Set default value to the first index
-                    clearable=False,  # Disable clearing the selection
+                    value=0,
+                    clearable=False,
                     style={'width': '100%'}
                 ),
                 html.Div(id='index-label', style={'marginTop': '10px', 'width': '100%'}),
@@ -107,7 +95,6 @@ wordcloud_layout = html.Div([
                       'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
         ], style={'backgroundColor': 'white', 'padding': '135px', 'alignItems': 'center'}),
 
-        # Initial word cloud image with cluster 0 and index 0
         html.Img(id="wordcloud-img", src=generate_wordcloud_image(0, 0),
                  style={'backgroundColor': '#E3F6FB', 'borderRadius': '10px', 'marginRight': '5px', 'width': '50%',
                         'height': '50%'}),
