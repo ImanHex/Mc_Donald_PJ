@@ -21,13 +21,21 @@ stored_model = Path(os.path.abspath('')) / "data" / "modeling" / "cluster_models
 cluster_model = open(stored_model, "rb")
 model = pickle.load(cluster_model)
 
-unique_coordinates = df[['latitude', 'longitude']].drop_duplicates()
+unique_coordinates = df[['latitude', 'longitude', 'store_address']].drop_duplicates()
 
-# average_rating_by_store = {address:(df[df['store_address'] == address])['rating'].mean().round(2) for address in df['store_address'].unique()}
-# print(average_rating_by_store)
-#
-# coordinates = [(latitude, longitude) for latitude, longitude in zip(df.latitude, df.longitude)]
-# print(coordinates)
+average_rating_by_store = {address: (df[df['store_address'] == address])['rating'].mean().round(2) for address in
+                           df['store_address'].unique()}
+print(average_rating_by_store)
+
+average_rating_by_latitude = df.groupby('latitude')['rating'].mean().round(2)
+
+coordinates = [(latitude, longitude) for latitude, longitude in zip(df.latitude, df.longitude)]
+
+latitudes, longitudes = np.array(coordinates).T
+print(latitudes)
+print(longitudes)
+
+
 # latitudes, longitudes = np.array(coordinates).T
 # Define color scale for ratings
 # def color_fn(rating):
@@ -124,9 +132,16 @@ app.layout = html.Div([
         html.H1("Leaflet Map"),
         dl.Map([
             dl.TileLayer(),
-            *[dl.Marker(position=[row['latitude'], row['longitude']]) for _, row in unique_coordinates.iterrows()],
-        ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4, style={'height': '500px', 'width': '500px'})
-        ])
+            *[dl.Marker(position=[latitude, longitude], children=[
+                dl.Tooltip(html.Div([
+                    html.P(f"Store Address: {store_address}"),
+                    html.P(f"Average Rating: {average_rating_by_latitude[latitude]}")
+                ]))
+            ]) for latitude, longitude, store_address in
+              zip(unique_coordinates['latitude'], unique_coordinates['longitude'], unique_coordinates['store_address'])]
+        ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4,
+            style={'height': '500px', 'width': '500px'})
+    ])
 ])
 
 
