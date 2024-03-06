@@ -13,6 +13,7 @@ from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = Dash(__name__)
+server = app.server
 stored_folder = Path(os.path.abspath('')) / "data" / "processed" / "cleaned_df.pkl"
 input_file = open(stored_folder, "rb")
 df = pickle.load(input_file)
@@ -34,6 +35,7 @@ coordinates = [(latitude, longitude) for latitude, longitude in zip(df.latitude,
 latitudes, longitudes = np.array(coordinates).T
 print(latitudes)
 print(longitudes)
+
 
 
 # latitudes, longitudes = np.array(coordinates).T
