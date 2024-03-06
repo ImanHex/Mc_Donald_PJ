@@ -100,36 +100,43 @@ def generate_wordcloud_image(cluster_num, index):
 
 # Define Dash layout
 app.layout = html.Div([
-    html.H1("McDonald's Reviews Word Cloud"),
-    html.Div(id='cluster-label', style={'marginTop': '10px'}),
-    html.Div(id='index-label', style={'marginTop': '10px'}),
+    html.H1("McDonald's Reviews Word Cloud", style={'textAlign': 'center',  'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px', 'borderRadius': '5px'}),
     html.Div(id="wordcloud-container", children=[
-        html.Img(id="wordcloud-img", src=generate_wordcloud_image(0, 0)),
-        # Initial word cloud image with cluster 0 and index 0
+
+    html.Div([
         html.Div([
-            html.Label("Select Cluster Number:"),
+            html.Label("Select Cluster Number:", style={'marginBottom': '10px', 'width': '100%'}),
             dcc.Dropdown(
                 id='cluster-dropdown',
                 options=[{'label': f'Cluster {i + 1}', 'value': i} for i in range(len(model[0]))],
                 # Create dropdown options dynamically based on number of clusters
                 value=0,  # Set default value to the first cluster
-                clearable=False  # Disable clearing the selection
-            )
-        ]),
+                clearable=False,  # Disable clearing the selection
+                style={'width': '100%'}
+            ),
+            html.Div(id='cluster-label', style={'marginTop': '10px', 'width': '100%'}),
+        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'flex-end', 'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
+
         html.Div([
-            html.Label("Select Index:"),
+            html.Label("Select Index:", style={'marginBottom': '10px', 'width': '100%'}),
             dcc.Dropdown(
                 id='index-dropdown',
                 options=[{'label': f'Rating {i + 1}', 'value': i} for i in range(len(model))],
                 # Create dropdown options dynamically based on number of indexes
                 value=0,  # Set default value to the first index
-                clearable=False  # Disable clearing the selection
-            )
-        ]),
+                clearable=False,  # Disable clearing the selection
+                style={'width': '100%'}
+            ),
+            html.Div(id='index-label', style={'marginTop': '10px', 'width': '100%'}),
+        ], style={'display': 'flex', 'flexDirection': 'column', 'marginTop': '50px', 'alignItems': 'flex-end', 'width': '300px', 'backgroundColor': '#9EE5FA', 'padding': '10px', 'borderRadius': '5px'}),
+        ], style={'backgroundColor': 'white', 'padding': '135px', 'alignItems': 'center'}),
 
-    ], style={'width': '50%', 'display': 'inline-flex', 'margin': '10px'}),
+        # Initial word cloud image with cluster 0 and index 0
+        html.Img(id="wordcloud-img", src=generate_wordcloud_image(0, 0), style={'backgroundColor': '#E3F6FB', 'borderRadius': '10px', 'marginRight': '5px', 'width': '50%', 'height': '50%'}),
+
+], style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'gap': '50px', 'borderRadius': '5px'}),
     html.Div([
-        html.H1("Leaflet Map"),
+        html.H1("Leaflet Map", style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'color': '#0181AD', 'paddingTop': '10px'}),
         dl.Map([
             dl.TileLayer(),
             *[dl.Marker(position=[latitude, longitude], children=[
@@ -140,9 +147,10 @@ app.layout = html.Div([
             ]) for latitude, longitude, store_address in
               zip(unique_coordinates['latitude'], unique_coordinates['longitude'], unique_coordinates['store_address'])]
         ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4,
-            style={'height': '500px', 'width': '500px'})
-    ])
-])
+           style={'height': '500px', 'width': '500px', 'marginLeft': '40px',  'borderRadius': '10px'})
+    ], style={'backgroundColor': 'white', 'width': '41%', 'marginLeft': '40px', 'borderRadius': '5px'})
+
+], style={'backgroundColor': '#F4F7F7', 'width': '100%', 'height': '100%', 'fontFamily': 'Arial, sans-serif'})
 
 
 # Define callback to update word cloud image based on selected cluster number and index
