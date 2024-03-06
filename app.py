@@ -13,6 +13,7 @@ from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = Dash(__name__)
+server = app.server
 stored_folder = Path(os.path.abspath('')) / "data" / "processed" / "cleaned_df.pkl"
 input_file = open(stored_folder, "rb")
 df = pickle.load(input_file)
