@@ -11,6 +11,8 @@ from dash import Dash, html, dcc
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
+import plotly.express as px
+import plotly.graph_objs as go
 
 app = Dash(__name__)
 server = app.server
@@ -23,9 +25,7 @@ cluster_model = open(stored_model, "rb")
 model = pickle.load(cluster_model)
 
 unique_coordinates = df[['latitude', 'longitude', 'store_address']].drop_duplicates()
-
-average_rating_by_store = {address: (df[df['store_address'] == address])['rating'].mean().round(2) for address in
-                           df['store_address'].unique()}
+average_rating_by_store = df.groupby('store_address')['rating'].mean().round(2).reset_index(name='rating')
 
 average_rating_by_latitude = df.groupby('latitude')['rating'].mean().round(2)
 
@@ -113,41 +113,61 @@ wordcloud_layout = html.Div([
                         'height': '50%'}),
 
     ], style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'gap': '50px',
-              'borderRadius': '5px', 'backgroundColor': 'white'})
+              'borderRadius': '5px', 'backgroundColor': 'white'}),
+    html.Div([
+        html.H1('Number of Reviews Over Time',
+                style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
+                       'borderRadius': '5px'}),
+        dcc.Graph(id='time-series-chart'),
+    ])
 ])
 
-# Define Dash layout for the map page
+pie_chart_layout = html.Div([
+    html.H1("Distribution of Review Scores", style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
+                   'borderRadius': '5px'}),
+    dcc.Graph(id='pie-chart'),
+])
+
+
 map_layout = html.Div([
+    pie_chart_layout,
     html.H1("Branches Average Score Map",
-            style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'color': '#0181AD',
-                   'paddingTop': '10px'}),
+            style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
+                   'borderRadius': '5px'}),
+
+    # Map
     dl.Map([
         dl.TileLayer(),
         *[dl.Marker(position=[latitude, longitude], children=[
             dl.Tooltip(html.Div([
                 html.P(f"Store Address: {store_address}"),
-                html.P(f"Average Rating: {average_rating_by_latitude[latitude]}")
+                html.P(f"Average Rating: {average_rating:.2f}")
             ]))
-        ]) for latitude, longitude, store_address in
-          zip(unique_coordinates['latitude'], unique_coordinates['longitude'], unique_coordinates['store_address'])]
-    ], center=[unique_coordinates['latitude'][0], unique_coordinates['longitude'][0]], zoom=4,
-        style={'height': '800px', 'width': '800px', 'margin': 'auto', 'borderRadius': '10px'})
-], style={'backgroundColor': 'white', 'width': '41%', 'margin': 'auto', 'borderRadius': '5px'})
+        ]) for latitude, longitude, store_address, average_rating in
+          zip(unique_coordinates['latitude'], unique_coordinates['longitude'],
+              unique_coordinates['store_address'], average_rating_by_store['rating'])]
+    ], center=[unique_coordinates['latitude'].mean(), unique_coordinates['longitude'].mean()], zoom=4,
+        style={'height': '800px', 'width': '800px', 'margin': 'auto', 'borderRadius': '10px'}),
+    html.Div([
+        html.H1("Average Rating by Store Chart",
+                style={'textAlign': 'center', 'backgroundColor': '#0181AD', 'color': 'white', 'padding': '20px',
+                       'borderRadius': '5px'}),
+        dcc.Graph(id='average-rating-bar-chart')], )
 
-# Define the main layout with navigation links
+])
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div([
         html.Div([
-            dcc.Link('Word Cloud', href='/', style={'marginRight': '10px'}),
-            dcc.Link('Map', href='/map', style={'marginRight': '10px'})
+            dcc.Link('Word Cloud', href='/', style={'font-family': 'Times New Roman, Times, serif', 'font-weight': 'bold', 'marginRight': '10px'}),
+            dcc.Link('Map', href='/map', style={'font-family': 'Times New Roman, Times, serif', 'font-weight': 'bold', 'marginRight': '10px'}),
         ], style={'padding': '10px'})
     ], style={'backgroundColor': '#F4F7F7', 'width': '100%'}),
     html.Div(id='page-content')
 ])
 
 
-# Define callback to render different pages based on navigation links
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
@@ -156,10 +176,9 @@ def display_page(pathname):
     elif pathname == '/map':
         return map_layout
     else:
-        return wordcloud_layout  # Default to word cloud page if URL is invalid
+        return wordcloud_layout
 
 
-# Define callback to update word cloud image based on selected cluster number and index
 @app.callback(
     [Output('wordcloud-img', 'src'),
      Output('cluster-label', 'children'),
@@ -171,6 +190,47 @@ def update_wordcloud(cluster_num, index):
     cluster_label = f"Current Cluster: {cluster_num + 1}"
     index_label = f"Current Rating: {index + 1}"
     return generate_wordcloud_image(cluster_num, index), cluster_label, index_label
+
+
+@app.callback(Output('average-rating-bar-chart', 'figure'), [Input('url', 'pathname')])
+def update_bar_chart(pathname):
+    data = [
+        go.Bar(
+            x=average_rating_by_store['store_address'],
+            y=average_rating_by_store['rating'],
+            marker=dict(color='rgb(26, 118, 255)')
+        )
+    ]
+    layout = go.Layout(
+        xaxis=dict(title='Store Address'),
+        yaxis=dict(title='Average Rating')
+    )
+    return {'data': data, 'layout': layout}
+
+
+@app.callback(Output("time-series-chart", "figure"), [Input("url", "pathname")])
+def display_time_graph(pathname):
+    review_counts = df.groupby('review_time').size().reset_index(name='Review Count')
+    fig = px.line(review_counts, x='review_time', y='Review Count')
+    return fig
+
+
+@app.callback(
+    Output('pie-chart', 'figure'),
+    [Input('url', 'pathname')]
+)
+def update_pie_chart(pathname):
+    if pathname == '/map':
+        # Calculate the count of each review score
+        rating_counts = df['rating'].value_counts().reset_index()
+
+        # Rename the columns to match the expected column names
+        rating_counts.columns = ['rating_score', 'total_people_votes']
+
+        # Create the pie chart using Plotly Express
+        fig = px.pie(rating_counts, values='total_people_votes', names='rating_score')
+
+        return fig
 
 
 if __name__ == "__main__":
