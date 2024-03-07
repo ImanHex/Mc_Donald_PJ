@@ -57,24 +57,18 @@ if __name__ == "__main__":
     cluster_models = compute_cluster_models(tfidf_list)
 
     cluster_groups = []
-
+    true_labels = cleaned_data['rating']
     for index, rating in enumerate(sorted(cleaned_data.rating.unique())):
         cluster_groups.append(
             compute_cluster_groups(shrunk_norm_matrix_list[index], review=cleaned_data[cleaned_data.rating == rating].processed_review))
 
-        all_clusters_df = pd.concat([cluster_df for cluster_group in cluster_groups for cluster_df in cluster_group],
-                                    ignore_index=True)
+    predicted_labels = [cluster_df['Cluster'].tolist() for cluster_group in cluster_groups for cluster_df in
+                        cluster_group]
+    predicted_labels = [item for sublist in predicted_labels for item in sublist]
 
-        # Extract true labels for the samples used in clustering
-        true_labels = cleaned_data.iloc[all_clusters_df['Index']]['rating']
+    ari_score = adjusted_rand_score(true_labels, predicted_labels)
+    print(f"ARI: {ari_score}")
 
-        # Get the predicted labels
-        predicted_labels = all_clusters_df['Cluster']
-
-        # Compute ARI score
-        ari_score = adjusted_rand_score(true_labels, predicted_labels)
-        print(f"ARI score: {ari_score}")
-
-# output_dir = Path(os.path.abspath('')).parent.parent / "data" / "modeling"
-    # with open(str(output_dir) + '/cluster_models.pkl', 'wb') as f:
-    #     pickle.dump(cluster_groups, f)
+    output_dir = Path(os.path.abspath('')).parent.parent / "data" / "modeling"
+    with open(str(output_dir) + '/cluster_models.pkl', 'wb') as f:
+        pickle.dump(cluster_groups, f)
