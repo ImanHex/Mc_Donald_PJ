@@ -1,15 +1,14 @@
 import pickle
 from pathlib import Path
 import os
-import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import adjusted_rand_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import normalize
-from wordcloud import WordCloud
+from sklearn.datasets import make_blobs
+import matplotlib.pyplot as plt
 
 stored_folder = Path(os.path.abspath('')).parent.parent / "data" / "processed" / "cleaned_df.pkl"
 input_file = open(stored_folder, "rb")
@@ -63,6 +62,19 @@ if __name__ == "__main__":
         cluster_groups.append(
             compute_cluster_groups(shrunk_norm_matrix_list[index], review=cleaned_data[cleaned_data.rating == rating].processed_review))
 
-    output_dir = Path(os.path.abspath('')).parent.parent / "data" / "modeling"
-    with open(str(output_dir) + '/cluster_models.pkl', 'wb') as f:
-        pickle.dump(cluster_groups, f)
+        all_clusters_df = pd.concat([cluster_df for cluster_group in cluster_groups for cluster_df in cluster_group],
+                                    ignore_index=True)
+
+        # Extract true labels for the samples used in clustering
+        true_labels = cleaned_data.iloc[all_clusters_df['Index']]['rating']
+
+        # Get the predicted labels
+        predicted_labels = all_clusters_df['Cluster']
+
+        # Compute ARI score
+        ari_score = adjusted_rand_score(true_labels, predicted_labels)
+        print(f"ARI score: {ari_score}")
+
+# output_dir = Path(os.path.abspath('')).parent.parent / "data" / "modeling"
+    # with open(str(output_dir) + '/cluster_models.pkl', 'wb') as f:
+    #     pickle.dump(cluster_groups, f)
